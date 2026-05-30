@@ -58,7 +58,7 @@ services:
       context: ./backend
       target: development
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-apiuser}:${POSTGRES_PASSWORD:-apipass}@postgres:5432/${POSTGRES_DB:-apitester}
       REDIS_URL:    redis://redis:6379
@@ -122,7 +122,7 @@ services:
       context: ./frontend
       target: development
     ports:
-      - "3000:3000"
+      - "3002:3000"
     environment:
       # next dev reads NEXT_PUBLIC_* at runtime — no build-time baking needed
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
