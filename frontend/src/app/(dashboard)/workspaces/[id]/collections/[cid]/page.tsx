@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import { collectionService } from "@/lib/services/collection.service";
 import { runnerService } from "@/lib/services/runner.service";
+import { HeadersEditor, type HeaderRow, headersToRows, rowsToHeaders, newHeaderId } from "@/components/collections/HeadersEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,6 +71,7 @@ export default function CollectionPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const [form, setForm] = useState({ name: "", method: "GET" as Method, url: "", body: "" });
+  const [headerRows, setHeaderRows] = useState<HeaderRow[]>([]);
   const [savingForm, setSavingForm] = useState(false);
 
   const [addOpen, setAddOpen] = useState(false);
@@ -80,7 +82,7 @@ export default function CollectionPage() {
     type: "status_code", operator: "eq", expected_value: "200", path: "",
   });
 
-  const [activeTab, setActiveTab] = useState<"body" | "assertions" | "response">("body");
+  const [activeTab, setActiveTab] = useState<"body" | "headers" | "assertions" | "response">("body");
   const [runResult, setRunResult] = useState<TestResult | null>(null);
   const [running, setRunning] = useState(false);
 
@@ -116,6 +118,7 @@ export default function CollectionPage() {
     setLoadingDetail(true);
     setRunResult(null);
     setAssertions([]);
+    setHeaderRows([]);
 
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
     fetch(`${apiBase}/requests/${selectedId}`, {
@@ -130,6 +133,7 @@ export default function CollectionPage() {
           body: data.body ?? "",
         });
         setAssertions(data.assertions ?? []);
+        setHeaderRows(headersToRows(data.headers ?? {}));
       })
       .catch(() => toast.error("Failed to load request"))
       .finally(() => setLoadingDetail(false));
@@ -172,6 +176,7 @@ export default function CollectionPage() {
         name: form.name,
         method: form.method as any,
         url: cleanedUrl,
+        headers: rowsToHeaders(headerRows),
         body: form.body || null,
         body_type: form.body ? "json" : "none",
       } as any);
@@ -423,13 +428,16 @@ export default function CollectionPage() {
 
             {/* Tabs */}
             <div className="flex border-b text-xs">
-              {(["body", "assertions", "response"] as const).map(tab => (
+              {(["body", "headers", "assertions", "response"] as const).map(tab => (
                 <button
                   key={tab}
                   className={`px-4 py-2.5 capitalize transition-colors ${activeTab === tab ? "border-b-2 border-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
                   onClick={() => setActiveTab(tab)}
                 >
                   {tab}
+                  {tab === "headers" && rowsToHeaders(headerRows) && Object.keys(rowsToHeaders(headerRows)).length > 0 && (
+                    <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[10px]">{Object.keys(rowsToHeaders(headerRows)).length}</span>
+                  )}
                   {tab === "assertions" && assertions.length > 0 && (
                     <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[10px]">{assertions.length}</span>
                   )}
@@ -455,6 +463,13 @@ export default function CollectionPage() {
                     value={form.body}
                     onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
                   />
+                </div>
+              )}
+
+              {/* Headers */}
+              {activeTab === "headers" && (
+                <div className="p-4">
+                  <HeadersEditor rows={headerRows} onChange={setHeaderRows} />
                 </div>
               )}
 
