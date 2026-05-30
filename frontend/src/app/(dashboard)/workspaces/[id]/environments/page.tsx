@@ -91,19 +91,34 @@ function EnvListItem({
   );
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+function isValidKey(k: string) { return k === "" || KEY_RE.test(k); }
+
 // ── Variable row ──────────────────────────────────────────────────────────────
 
-function VariableRow({ row, index, onChange, onDelete }: {
+function VariableRow({ row, index, onChange, onDelete, isDuplicate }: {
   row: EditableRow; index: number;
   onChange: (i: number, patch: Partial<EditableRow>) => void;
   onDelete: (i: number) => void;
+  isDuplicate: boolean;
 }) {
-  const showValue = !row.is_secret || row.revealed;
+  const showValue  = !row.is_secret || row.revealed;
+  const keyInvalid = row.key !== "" && !isValidKey(row.key);
   return (
     <tr className={`border-b last:border-0 ${row.dirty ? "bg-amber-500/3" : ""}`}>
-      <td className="px-3 py-1.5 w-48">
-        <Input className="h-7 text-xs font-mono" placeholder="VARIABLE_NAME"
-          value={row.key} onChange={e => onChange(index, { key: e.target.value, dirty: true })} />
+      <td className="px-3 py-1.5 w-52">
+        <div className="space-y-0.5">
+          <Input
+            className={`h-7 text-xs font-mono ${keyInvalid || isDuplicate ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+            placeholder="VARIABLE_NAME"
+            value={row.key}
+            onChange={e => onChange(index, { key: e.target.value, dirty: true })}
+          />
+          {keyInvalid && <p className="text-[10px] text-red-500 px-1">Letters, digits, _ only; can't start with digit</p>}
+          {isDuplicate && !keyInvalid && <p className="text-[10px] text-red-500 px-1">Duplicate key</p>}
+        </div>
       </td>
       <td className="px-3 py-1.5">
         <div className="flex items-center gap-1">
@@ -243,6 +258,9 @@ export default function EnvironmentsPage() {
   const save = async () => {
     if (!selectedId) return;
     if (rows.some(r => !r.key.trim())) { toast.error("All variables must have a key"); return; }
+    if (rows.some(r => !isValidKey(r.key))) { toast.error("Fix invalid variable names (letters, digits, _ only)"); return; }
+    const keys = rows.map(r => r.key.trim());
+    if (new Set(keys).size !== keys.length) { toast.error("Duplicate variable keys found"); return; }
     setSaving(true);
     try {
       const vars: BulkVariable[] = rows.map(r => ({ key: r.key.trim(), value: r.value, is_secret: r.is_secret }));
@@ -390,9 +408,10 @@ export default function EnvironmentsPage() {
                   <tbody>
                     {rows.length === 0 ? (
                       <tr><td colSpan={4} className="px-3 py-8 text-center text-xs text-muted-foreground">No variables — add one below</td></tr>
-                    ) : rows.map((row, i) => (
-                      <VariableRow key={i} row={row} index={i} onChange={patchRow} onDelete={deleteRow} />
-                    ))}
+                    ) : rows.map((row, i) => {
+                      const keyCount = rows.filter(r => r.key.trim() && r.key.trim() === row.key.trim()).length;
+                      return <VariableRow key={i} row={row} index={i} onChange={patchRow} onDelete={deleteRow} isDuplicate={keyCount > 1} />;
+                    })}
                   </tbody>
                 </table>
                 <div className="border-t bg-muted/20 px-3 py-2">
