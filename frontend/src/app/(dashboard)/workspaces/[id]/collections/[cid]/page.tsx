@@ -93,6 +93,16 @@ export default function CollectionPage() {
   const [showColResults, setShowColResults] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Request search + method filter ─────────────────────────────────────
+  const [requestSearch, setRequestSearch] = useState("");
+  const [methodFilter, setMethodFilter] = useState<string[]>([]);
+
+  const filteredRequests = requests.filter(r => {
+    const matchSearch = !requestSearch || r.name.toLowerCase().includes(requestSearch.toLowerCase()) || r.url.toLowerCase().includes(requestSearch.toLowerCase());
+    const matchMethod = methodFilter.length === 0 || methodFilter.includes(r.method);
+    return matchSearch && matchMethod;
+  });
+
   // ── Load collection ──────────────────────────────────────────────────────
 
   const loadCollection = useCallback(async () => {
@@ -310,6 +320,41 @@ export default function CollectionPage() {
           </button>
         </div>
 
+        {/* Search + method filter */}
+        <div className="border-b px-2 py-2 space-y-1.5">
+          <div className="relative">
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </span>
+            <Input
+              className="h-7 pl-6 text-xs"
+              placeholder="Filter requests…"
+              value={requestSearch}
+              onChange={e => setRequestSearch(e.target.value)}
+            />
+            {requestSearch && (
+              <button className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setRequestSearch("")}>
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+          {/* Method chips */}
+          <div className="flex flex-wrap gap-1">
+            {(["GET","POST","PUT","PATCH","DELETE"] as const).map(m => {
+              const active = methodFilter.includes(m);
+              const cls = { GET:"text-emerald-700 bg-emerald-500/10", POST:"text-blue-700 bg-blue-500/10", PUT:"text-amber-700 bg-amber-500/10", PATCH:"text-purple-700 bg-purple-500/10", DELETE:"text-red-700 bg-red-500/10" }[m];
+              return (
+                <button key={m} type="button"
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold transition-all ${active ? cls + " shadow-sm scale-105" : "text-muted-foreground bg-muted/40 hover:bg-muted"}`}
+                  onClick={() => setMethodFilter(f => f.includes(m) ? f.filter(x => x !== m) : [...f, m])}>
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Add request form */}
         {addOpen && (
           <form onSubmit={handleAddRequest} className="border-b bg-background p-2.5 space-y-1.5 text-xs">
@@ -347,9 +392,11 @@ export default function CollectionPage() {
         <div className="flex-1 overflow-auto py-1">
           {loadingList
             ? [...Array(3)].map((_, i) => <Skeleton key={i} className="mx-2 my-1 h-9 rounded" />)
-            : requests.length === 0
-              ? <p className="px-3 py-6 text-center text-xs text-muted-foreground">No requests.<br />Click + to add.</p>
-              : requests.map(req => (
+            : filteredRequests.length === 0 && requests.length > 0
+              ? <p className="px-3 py-4 text-center text-xs text-muted-foreground">No requests match the filter.</p>
+              : requests.length === 0
+                ? <p className="px-3 py-6 text-center text-xs text-muted-foreground">No requests.<br />Click + to add.</p>
+                : filteredRequests.map(req => (
                 <div
                   key={req.id}
                   className={`group flex cursor-pointer items-center gap-1.5 px-2 py-2 transition-colors hover:bg-muted/50 ${selectedId === req.id ? "bg-secondary" : ""}`}
