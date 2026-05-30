@@ -1,0 +1,142 @@
+# Development Docker Compose
+#
+# Quick start:
+#   cp .env.example .env        # fill in JWT_SECRET and OPENAI_API_KEY
+#   docker compose up --build
+#
+# Services (startup order): postgres → redis → backend → worker → frontend
+#
+# Production:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+
+name: api-tester
+
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-apiuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-apipass}
+      POSTGRES_DB:       ${POSTGRES_DB:-apitester}
+    ports:
+      - "5432:5432"                    # exposed for local tools (TablePlus, psql)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-apiuser} -d ${POSTGRES_DB:-apitester}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"                    # exposed for local tools (redis-cli)
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+
+  # ── Backend API ──────────────────────────────────────────────────────────────
+  # The docker-entrypoint.sh runs `alembic upgrade head` before uvicorn starts,
+  # so the schema is always up-to-date when the first request arrives.
+  backend:
+    build:
+      context: ./backend
+      target: development
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-apiuser}:${POSTGRES_PASSWORD:-apipass}@postgres:5432/${POSTGRES_DB:-apitester}
+      REDIS_URL:    redis://redis:6379
+
+      JWT_SECRET:              ${JWT_SECRET:?JWT_SECRET is required — see .env.example}
+      JWT_ALGORITHM:           ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRE_MINUTES:      ${JWT_EXPIRE_MINUTES:-30}
+      JWT_REFRESH_EXPIRE_DAYS: ${JWT_REFRESH_EXPIRE_DAYS:-7}
+
+      OPENAI_API_KEY:  ${OPENAI_API_KEY:-}
+      OPENAI_MODEL:    ${OPENAI_MODEL:-gpt-4o-mini}
+
+      APP_NAME:            ${APP_NAME:-API Tester}
+      DEBUG:               ${DEBUG:-true}
+      BCRYPT_ROUNDS:       ${BCRYPT_ROUNDS:-12}
+      CORS_ORIGINS:        ${CORS_ORIGINS:-["http://localhost:3000"]}
+      RATE_LIMIT_ENABLED:  ${RATE_LIMIT_ENABLED:-true}
+
+      RUN_MIGRATIONS: "true"
+    volumes:
+      - ./backend:/app                  # hot reload
+      - /app/venv                       # shadow host venv — container uses /venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+
+  # ── Background worker ────────────────────────────────────────────────────────
+  # Same image as the backend; different CMD.
+  # RUN_MIGRATIONS=false — migrations are already applied by the backend.
+  # Depends on backend being healthy so migrations are guaranteed complete.
+  worker:
+    build:
+      context: ./backend
+      target: development
+    command: python -m app.worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-apiuser}:${POSTGRES_PASSWORD:-apipass}@postgres:5432/${POSTGRES_DB:-apitester}
+      REDIS_URL:    redis://redis:6379
+
+      JWT_SECRET:    ${JWT_SECRET:?JWT_SECRET is required — see .env.example}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEBUG:         ${DEBUG:-true}
+
+      RUN_MIGRATIONS: "false"           # backend already ran them
+    volumes:
+      - ./backend:/app
+      - /app/venv
+    depends_on:
+      backend:
+        condition: service_healthy      # guarantees schema is ready
+    restart: unless-stopped
+
+
+  # ── Frontend ──────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    ports:
+      - "3000:3000"
+    environment:
+      # next dev reads NEXT_PUBLIC_* at runtime — no build-time baking needed
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    volumes:
+      - ./frontend:/app                 # hot reload
+      - /app/node_modules               # shadow host node_modules
+      - /app/.next                      # shadow build cache
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

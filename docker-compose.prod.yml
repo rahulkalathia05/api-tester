@@ -1,0 +1,72 @@
+# Production overrides for docker-compose.yml
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# Changes vs dev:
+#   - All services use the production build targets (lean images, non-root users)
+#   - Source-code bind mounts removed — code lives inside the image
+#   - postgres and redis ports NOT exposed externally
+#   - Backend runs 4 uvicorn workers
+#   - Frontend uses the standalone Node server (not next dev)
+#   - DEBUG=false, more conservative settings
+#   - NEXT_PUBLIC_API_URL must point to the public API domain
+
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    ports: []                    # do not expose DB to the host in production
+    restart: always
+
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    ports: []                    # do not expose Redis to the host in production
+    restart: always
+
+
+  # ── Backend API ──────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      target: production
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --workers
+      - "4"
+    environment:
+      DEBUG: "false"
+      RATE_LIMIT_ENABLED: "true"
+    volumes: []                  # no bind mounts — code is inside the image
+    restart: always
+
+
+  # ── Worker ───────────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      target: production
+    environment:
+      DEBUG: "false"
+    volumes: []
+    restart: always
+
+
+  # ── Frontend ──────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      target: runner
+      args:
+        # NEXT_PUBLIC_* are inlined at build time — must match the public API URL
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL required for production}
+    environment:
+      NODE_ENV: production
+    volumes: []                  # no bind mounts — content is inside the image
+    restart: always
