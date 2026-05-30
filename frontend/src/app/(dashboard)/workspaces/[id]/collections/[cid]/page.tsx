@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type { ApiRequest, Assertion, AssertionResult, TestResult } from "@/types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ function cleanUrl(raw: string): string {
 
 export default function CollectionPage() {
   const { cid: collectionId } = useParams<{ id: string; cid: string }>();
+  const { activeEnvironment } = useWorkspaceStore();
 
   const [collectionName, setCollectionName] = useState("");
   const [requests, setRequests] = useState<ApiRequest[]>([]);
@@ -263,7 +265,7 @@ export default function CollectionPage() {
     setRunResult(null);
     setActiveTab("response");
     try {
-      const { data } = await runnerService.runSingle(selectedId);
+      const { data } = await runnerService.runSingle(selectedId, activeEnvironment?.id);
       setRunResult(data);
     } catch {
       toast.error("Run failed");
@@ -279,7 +281,7 @@ export default function CollectionPage() {
     setColResults([]);
     setShowColResults(true);
     try {
-      const { data: run } = await runnerService.runCollection(collectionId);
+      const { data: run } = await runnerService.runCollection(collectionId, activeEnvironment?.id);
       if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(async () => {
         try {
