@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+.env
+.env.*
+.env.local
+.env.*.local
+*.md
+AGENTS.md
+CLAUDE.md
+.DS_Store
+.idea/
+.vscode/
