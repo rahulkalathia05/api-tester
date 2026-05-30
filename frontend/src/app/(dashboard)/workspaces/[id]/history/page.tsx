@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIAnalysisPanel } from "@/components/ai/AIAnalysisPanel";
+import { ResponseHeadersViewer } from "@/components/results/ResponseHeadersViewer";
 import type { PaginatedResponse, RunStats, TestRun, TestRunDetail, TestResult, SortDir } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -158,6 +159,14 @@ function ResultRow({ result }: { result: TestResult }) {
           <Tabs defaultValue={result.status === "failed" || result.status === "error" ? "ai" : "response"} className="p-3">
             <TabsList className="h-7 text-xs mb-3">
               <TabsTrigger value="response" className="text-xs">Response</TabsTrigger>
+              <TabsTrigger value="headers" className="text-xs">
+                Headers
+                {Object.keys(result.response_headers).length > 0 && (
+                  <span className="ml-1 text-[10px] text-muted-foreground">
+                    ({Object.keys(result.response_headers).length})
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="assertions" className="text-xs">
                 Assertions {result.assertion_results.length > 0 && (
                   <span className={`ml-1 text-[10px] ${allPassed ? "text-emerald-600" : "text-red-600"}`}>
@@ -183,6 +192,10 @@ function ResultRow({ result }: { result: TestResult }) {
                   {(() => { try { return JSON.stringify(JSON.parse(result.response_body!), null, 2); } catch { return result.response_body; } })()}
                 </pre>
               ) : <p className="text-xs text-muted-foreground italic">No response body</p>}
+            </TabsContent>
+
+            <TabsContent value="headers" className="mt-0">
+              <ResponseHeadersViewer headers={result.response_headers} maxHeight={260} />
             </TabsContent>
 
             <TabsContent value="assertions" className="mt-0">

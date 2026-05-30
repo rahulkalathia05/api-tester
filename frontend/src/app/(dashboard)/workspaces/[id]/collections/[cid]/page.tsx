@@ -11,6 +11,7 @@ import { collectionService } from "@/lib/services/collection.service";
 import { runnerService } from "@/lib/services/runner.service";
 import { HeadersEditor, type HeaderRow, headersToRows, rowsToHeaders, newHeaderId } from "@/components/collections/HeadersEditor";
 import { AuthEditor, type AuthConfig, authConfigToApiPayload, apiPayloadToAuthConfig } from "@/components/collections/AuthEditor";
+import { ResponseHeadersViewer } from "@/components/results/ResponseHeadersViewer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -658,6 +659,14 @@ export default function CollectionPage() {
                               </div>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Response headers */}
+                      {Object.keys(runResult.response_headers).length > 0 && (
+                        <div>
+                          <p className="mb-1.5 text-xs font-semibold">Response headers</p>
+                          <ResponseHeadersViewer headers={runResult.response_headers} maxHeight={200} />
                         </div>
                       )}
 

@@ -18,6 +18,7 @@ import { runnerService } from "@/lib/services/runner.service";
 import { Header } from "@/components/layout/Header";
 import { DiffViewer } from "@/components/diff/DiffViewer";
 import { AIAnalysisPanel } from "@/components/ai/AIAnalysisPanel";
+import { ResponseHeadersViewer } from "@/components/results/ResponseHeadersViewer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -261,7 +262,14 @@ function ResultRow({ result }: { result: TestResult }) {
           <Tabs defaultValue="response" className="p-4">
             <TabsList className="h-8 text-xs">
               <TabsTrigger value="response" className="text-xs">Response</TabsTrigger>
-              <TabsTrigger value="headers"  className="text-xs">Headers</TabsTrigger>
+              <TabsTrigger value="headers" className="text-xs">
+                Headers
+                {Object.keys(result.response_headers).length > 0 && (
+                  <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[10px]">
+                    {Object.keys(result.response_headers).length}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="assertions" className="text-xs">
                 Assertions
                 {result.assertion_results.length > 0 && (
@@ -299,18 +307,7 @@ function ResultRow({ result }: { result: TestResult }) {
             </TabsContent>
 
             <TabsContent value="headers" className="mt-3">
-              {Object.keys(result.response_headers).length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">No headers captured</p>
-              ) : (
-                <div className="space-y-1">
-                  {Object.entries(result.response_headers).map(([k, v]) => (
-                    <div key={k} className="flex gap-3 text-xs">
-                      <span className="w-48 shrink-0 truncate font-mono text-muted-foreground">{k}</span>
-                      <span className="font-mono text-foreground break-all">{v}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ResponseHeadersViewer headers={result.response_headers} maxHeight={320} />
             </TabsContent>
 
             <TabsContent value="assertions" className="mt-3">
