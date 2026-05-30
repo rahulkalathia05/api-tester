@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Plus, FolderOpen, Trash2, ArrowRight } from "lucide-react";
+import { Plus, FolderOpen, Trash2, ArrowRight, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useCollections } from "@/hooks/useCollections";
 import { collectionService } from "@/lib/services/collection.service";
+import { ImportDialog } from "@/components/collections/ImportDialog";
 import { Header } from "@/components/layout/Header";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export default function WorkspacePage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "" });
   const [creating, setCreating] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +78,12 @@ export default function WorkspacePage() {
         title={activeWorkspace?.name ?? "Workspace"}
         description="API collections"
         actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5"
+              onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4" />
+              Import
+            </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
               <Plus className="h-4 w-4" />
@@ -112,7 +120,16 @@ export default function WorkspacePage() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         }
+      />
+
+      {/* Import dialog */}
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        workspaceId={id}
+        onSuccess={() => refetch()}
       />
 
       <div className="flex-1 overflow-auto p-6">

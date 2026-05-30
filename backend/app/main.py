@@ -20,6 +20,7 @@ from app.routers import auth, workspaces
 from app.routers.analytics import router as analytics_router
 from app.routers.collections import router as collections_router
 from app.routers.environments import router as environments_router
+from app.routers.import_ import router as import_router
 from app.routers.runner import router as runner_router
 from app.routers.schedules import router as schedules_router
 from app.utils.logger import get_logger, setup_logging
@@ -90,6 +91,7 @@ app.include_router(runner_router)        # /requests/*/run, /collections/*/run, 
 app.include_router(analytics_router)    # /workspaces/{id}/analytics
 app.include_router(environments_router) # /workspaces/*/environments, /environments/*, /variables/*
 app.include_router(schedules_router)    # /collections/*/schedules, /schedules/*, /schedules/presets
+app.include_router(import_router)       # /workspaces/{id}/import/postman
 # app.include_router(analytics.router,  prefix="/workspaces",   tags=["analytics"])
 
 
