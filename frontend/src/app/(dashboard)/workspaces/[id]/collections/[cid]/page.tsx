@@ -13,6 +13,7 @@ import { HeadersEditor, type HeaderRow, headersToRows, rowsToHeaders, newHeaderI
 import { AuthEditor, type AuthConfig, authConfigToApiPayload, apiPayloadToAuthConfig } from "@/components/collections/AuthEditor";
 import { ResponseHeadersViewer } from "@/components/results/ResponseHeadersViewer";
 import { AIAnalysisPanel } from "@/components/ai/AIAnalysisPanel";
+import { SchedulesTab } from "@/components/collections/SchedulesTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,7 +65,7 @@ function cleanUrl(raw: string): string {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function CollectionPage() {
-  const { cid: collectionId } = useParams<{ id: string; cid: string }>();
+  const { id: workspaceId, cid: collectionId } = useParams<{ id: string; cid: string }>();
   const { activeEnvironment } = useWorkspaceStore();
 
   const [collectionName, setCollectionName] = useState("");
@@ -88,7 +89,7 @@ export default function CollectionPage() {
     type: "status_code", operator: "eq", expected_value: "200", path: "",
   });
 
-  const [activeTab, setActiveTab] = useState<"body" | "headers" | "auth" | "assertions" | "response">("body");
+  const [activeTab, setActiveTab] = useState<"body" | "headers" | "auth" | "assertions" | "response" | "schedules">("body");
   const [runResult, setRunResult] = useState<TestResult | null>(null);
   const [running, setRunning] = useState(false);
 
@@ -484,7 +485,7 @@ export default function CollectionPage() {
 
             {/* Tabs */}
             <div className="flex border-b text-xs">
-              {(["body", "headers", "auth", "assertions", "response"] as const).map(tab => (
+              {(["body", "headers", "auth", "assertions", "response", "schedules"] as const).map(tab => (
                 <button
                   key={tab}
                   className={`px-4 py-2.5 capitalize transition-colors ${activeTab === tab ? "border-b-2 border-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
@@ -691,6 +692,11 @@ export default function CollectionPage() {
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Schedules */}
+              {activeTab === "schedules" && (
+                <SchedulesTab collectionId={collectionId} workspaceId={workspaceId} />
               )}
             </div>
           </>
