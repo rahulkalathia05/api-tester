@@ -15,7 +15,7 @@ export const collectionService = {
   delete: (id: string) => api.delete(`/collections/${id}`),
 
   getWithRequests: (id: string) =>
-    api.get<Collection>(`/collections/${id}/requests`),
+    api.get<Collection>(`/collections/${id}`),
 
   // Requests
   createRequest: (collectionId: string, data: Partial<ApiRequest>) =>
