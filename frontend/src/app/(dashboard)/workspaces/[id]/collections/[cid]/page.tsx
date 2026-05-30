@@ -12,6 +12,7 @@ import { runnerService } from "@/lib/services/runner.service";
 import { HeadersEditor, type HeaderRow, headersToRows, rowsToHeaders, newHeaderId } from "@/components/collections/HeadersEditor";
 import { AuthEditor, type AuthConfig, authConfigToApiPayload, apiPayloadToAuthConfig } from "@/components/collections/AuthEditor";
 import { ResponseHeadersViewer } from "@/components/results/ResponseHeadersViewer";
+import { AIAnalysisPanel } from "@/components/ai/AIAnalysisPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -684,6 +685,9 @@ export default function CollectionPage() {
                           </pre>
                         </div>
                       )}
+
+                      {/* AI Analysis */}
+                      <AIAnalysisPanel resultId={runResult.id} resultStatus={runResult.status} />
                     </div>
                   )}
                 </div>
