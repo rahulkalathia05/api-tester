@@ -1,5 +1,6 @@
 import api from "@/lib/api";
 import type {
+  AiAnalysis,
   PaginatedResponse,
   ResultDiff,
   ResultHistoryItem,
@@ -70,6 +71,15 @@ export const runnerService = {
     api.get<ResultHistoryItem[]>(`/requests/${requestId}/history`, {
       params: { limit },
     }),
+
+  // ── AI Analysis ─────────────────────────────────────────────────────────────
+  analyzeResult: (resultId: string, force = false) =>
+    api.post<AiAnalysis>(`/results/${resultId}/analyze`, undefined, {
+      params: force ? { force: true } : undefined,
+    }),
+
+  getAnalysis: (resultId: string) =>
+    api.get<AiAnalysis>(`/results/${resultId}/analysis`),
 
   // SSE stream URL (used directly with EventSource, not via axios)
   streamUrl: (runId: string) =>

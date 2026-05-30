@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AIAnalysisPanel } from "@/components/ai/AIAnalysisPanel";
 import type { PaginatedResponse, RunStats, TestRun, TestRunDetail, TestResult, SortDir } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -153,37 +154,66 @@ function ResultRow({ result }: { result: TestResult }) {
       </button>
 
       {open && (
-        <div className="border-t bg-muted/20 p-3 space-y-3">
-          {result.error_message && (
-            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {result.error_message}
-            </div>
-          )}
+        <div className="border-t bg-muted/20">
+          <Tabs defaultValue={result.status === "failed" || result.status === "error" ? "ai" : "response"} className="p-3">
+            <TabsList className="h-7 text-xs mb-3">
+              <TabsTrigger value="response" className="text-xs">Response</TabsTrigger>
+              <TabsTrigger value="assertions" className="text-xs">
+                Assertions {result.assertion_results.length > 0 && (
+                  <span className={`ml-1 text-[10px] ${allPassed ? "text-emerald-600" : "text-red-600"}`}>
+                    ({result.assertion_results.filter(a => a.passed).length}/{result.assertion_results.length})
+                  </span>
+                )}
+              </TabsTrigger>
+              {(result.status === "failed" || result.status === "error") && (
+                <TabsTrigger value="ai" className="text-xs gap-1">
+                  <span className="text-violet-500">✦</span>AI
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-          {result.assertion_results.length > 0 && (
-            <div className="space-y-1.5">
-              {result.assertion_results.map(ar => (
-                <div key={ar.id} className={`flex items-start gap-2 rounded border px-2.5 py-1.5 ${ar.passed ? "border-emerald-200 bg-emerald-500/5" : "border-red-200 bg-red-500/5"}`}>
-                  {ar.passed ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500 mt-0.5" />
-                             : <XCircle className="h-3.5 w-3.5 shrink-0 text-red-500 mt-0.5" />}
-                  <div>
-                    <span className="font-mono text-muted-foreground">{ar.assertion_snapshot?.type}</span>
-                    {" "}<span>{ar.assertion_snapshot?.operator}</span>
-                    {" "}<span className="font-semibold">{ar.assertion_snapshot?.expected_value}</span>
-                    {ar.actual_value != null && (
-                      <span className="block text-muted-foreground">actual: <span className="font-semibold text-foreground">{ar.actual_value}</span></span>
-                    )}
-                  </div>
+            <TabsContent value="response" className="mt-0 space-y-2">
+              {result.error_message && (
+                <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {result.error_message}
                 </div>
-              ))}
-            </div>
-          )}
+              )}
+              {result.response_body ? (
+                <pre className="max-h-48 overflow-auto rounded bg-zinc-950 p-2.5 text-[11px] text-zinc-100 whitespace-pre-wrap break-all">
+                  {(() => { try { return JSON.stringify(JSON.parse(result.response_body!), null, 2); } catch { return result.response_body; } })()}
+                </pre>
+              ) : <p className="text-xs text-muted-foreground italic">No response body</p>}
+            </TabsContent>
 
-          {result.response_body && (
-            <pre className="max-h-48 overflow-auto rounded bg-zinc-950 p-2.5 text-[11px] text-zinc-100 whitespace-pre-wrap break-all">
-              {(() => { try { return JSON.stringify(JSON.parse(result.response_body!), null, 2); } catch { return result.response_body; } })()}
-            </pre>
-          )}
+            <TabsContent value="assertions" className="mt-0">
+              {result.assertion_results.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">No assertions</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {result.assertion_results.map(ar => (
+                    <div key={ar.id} className={`flex items-start gap-2 rounded border px-2.5 py-1.5 ${ar.passed ? "border-emerald-200 bg-emerald-500/5" : "border-red-200 bg-red-500/5"}`}>
+                      {ar.passed ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500 mt-0.5" />
+                                 : <XCircle className="h-3.5 w-3.5 shrink-0 text-red-500 mt-0.5" />}
+                      <div>
+                        <span className="font-mono text-muted-foreground">{ar.assertion_snapshot?.type}</span>
+                        {" "}<span>{ar.assertion_snapshot?.operator}</span>
+                        {" "}<span className="font-semibold">{ar.assertion_snapshot?.expected_value}</span>
+                        {ar.actual_value != null && (
+                          <span className="block text-muted-foreground">actual: <span className="font-semibold text-foreground">{ar.actual_value}</span></span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {(result.status === "failed" || result.status === "error") && (
+              <TabsContent value="ai" className="mt-0">
+                <AIAnalysisPanel resultId={result.id} resultStatus={result.status} />
+              </TabsContent>
+            )}
+          </Tabs>
         </div>
       )}
     </div>

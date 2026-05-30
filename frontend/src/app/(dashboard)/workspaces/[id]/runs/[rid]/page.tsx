@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { runnerService } from "@/lib/services/runner.service";
 import { Header } from "@/components/layout/Header";
 import { DiffViewer } from "@/components/diff/DiffViewer";
+import { AIAnalysisPanel } from "@/components/ai/AIAnalysisPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -271,6 +272,12 @@ function ResultRow({ result }: { result: TestResult }) {
                   </span>
                 )}
               </TabsTrigger>
+              {(result.status === "failed" || result.status === "error") && (
+                <TabsTrigger value="ai" className="text-xs gap-1.5">
+                  <span className="text-violet-500">✦</span>
+                  AI Analysis
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="response" className="mt-3">
@@ -339,6 +346,13 @@ function ResultRow({ result }: { result: TestResult }) {
                 </div>
               )}
             </TabsContent>
+
+            {/* AI Analysis tab */}
+            {(result.status === "failed" || result.status === "error") && (
+              <TabsContent value="ai" className="mt-3">
+                <AIAnalysisPanel resultId={result.id} resultStatus={result.status} />
+              </TabsContent>
+            )}
           </Tabs>
 
           {/* Diff panel — always available for any result */}

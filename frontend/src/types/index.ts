@@ -174,18 +174,34 @@ export interface AssertionResult {
 
 // ── AI Analysis ───────────────────────────────────────────────────────────────
 
-export interface AiSuggestion {
+export type ConfidenceLevel = "high" | "medium" | "low";
+
+export interface RootCause {
   title: string;
   description: string;
-  code?: string;
+  confidence: ConfidenceLevel;
+}
+
+export interface DebuggingStep {
+  step: number;
+  action: string;
+  detail: string;
+}
+
+export interface LikelyFix {
+  title: string;
+  description: string;
+  code: string | null;
 }
 
 export interface AiAnalysis {
   id: string;
   test_result_id: string;
   model: string;
-  analysis: string;          // markdown
-  suggestions: AiSuggestion[];
+  summary: string;
+  root_causes: RootCause[];
+  debugging_steps: DebuggingStep[];
+  likely_fixes: LikelyFix[];
   prompt_tokens: number;
   completion_tokens: number;
   created_at: string;
